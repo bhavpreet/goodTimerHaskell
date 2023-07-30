@@ -25,19 +25,20 @@ someFunc = putStrLn "someFunc"
 
 type Duration = Double
 
-data DurationSelectionCriteria
+data SortCriteria
   = BestDuration
   | WorstDuration
   | AverageDuration
+  | TopRanking
   deriving (Show, Generic)
 
-instance ToJSON DurationSelectionCriteria where
+instance ToJSON SortCriteria where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
   toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON DurationSelectionCriteria
+instance FromJSON SortCriteria
 
 data RoundSelectionCriteria
   = Top8
@@ -68,13 +69,14 @@ type Category = String
 data Round = Round
   { roundName :: String,
     roundDuration :: Duration,
-    panelty :: [Penalty],
+    rank :: Int,
+    penalty :: [Penalty],
     timeStr :: String,
     roundCategory :: Category,
     isCurrentRound :: Bool,
     subRounds :: [Round],
     currentSubRoundName :: String,
-    timeSelectionCriteria :: DurationSelectionCriteria,
+    sortCriteria :: SortCriteria,
     selectionRounds :: [String],
     roundSelectionCriteria :: RoundSelectionCriteria
   }
@@ -89,7 +91,7 @@ instance ToJSON Round where
 instance FromJSON Round
 
 data Penalty = Penalty
-  { paneltyDuration :: Duration,
+  { penaltyDuration :: Duration,
     note :: String
   }
   deriving (Show, Generic)
@@ -121,17 +123,25 @@ instance ToJSON Athlete where
 
 instance FromJSON Athlete
 
--- roundDurationWithPenalty adds roundtime with paneltytime and returns the in Duration
+getRank :: Maybe Round -> Int
+getRank Nothing = 99999
+getRank (Just r) = rank r
+
+athleteRoundDurationWithPenalty :: Athlete -> String -> Duration
+athleteRoundDurationWithPenalty a roundName =
+  roundDurationWithPenalty (Data.Map.lookup roundName (athleteRounds a))
+
+-- roundDurationWithPenalty adds roundtime with penaltytime and returns the in Duration
 roundDurationWithPenalty :: Maybe Round -> Duration
-roundDurationWithPenalty Nothing = 0.0
+roundDurationWithPenalty Nothing = 99999.0
 roundDurationWithPenalty
   ( Just
       Round
         { roundDuration = rt,
-          panelty = p
+          penalty = p
         }
     ) =
-    rt + sum (map paneltyDuration p)
+    rt + sum (map penaltyDuration p)
 
 newtype Athletes = Athletes [Athlete] deriving (Show)
 
@@ -187,9 +197,9 @@ matchCurrentRound r currentRnd =
           else matchCurrentRound x currentRnd
 
 convertTimeStrToDuration :: String -> Maybe Duration
-convertTimeStrToDuration "DNF" = Nothing
-convertTimeStrToDuration "DNS" = Nothing
-convertTimeStrToDuration "DSQ" = Nothing
+convertTimeStrToDuration "DNF" = Just 9999.0
+convertTimeStrToDuration "DNS" = Just 9999.0
+convertTimeStrToDuration "DSQ" = Just 9999.0
 --  time String format = "00:00:00.00"
 convertTimeStrToDuration time =
   case splitOn ":" time of
@@ -208,7 +218,26 @@ convertTimeStrToDuration time =
               + (read s :: Double)
               + ((read ms :: Double) / 1000)
         _ -> Nothing
+    [m, s, ms] ->
+      Just $
+        (read m :: Double) * 60
+          + (read s :: Double)
+          + ((read ms :: Double) / 1000)
+    [m, sms] ->
+      case splitOn "." sms of
+        [s, ms] ->
+          Just $
+            (read m :: Double) * 60
+              + (read s :: Double)
+              + ((read ms :: Double) / 1000)
+        _ -> Nothing
     _ -> Nothing
+
+convertRankStrToInt :: String -> Maybe Int
+convertRankStrToInt "DNF" = Just 99999
+convertRankStrToInt "DNS" = Just 99999
+convertRankStrToInt "DSQ" = Just 99999
+convertRankStrToInt rank = Just (read rank :: Int)
 
 -- setCurrentRound
 -- Takes Round and dotted notation of name round.subround as string and marks the round and sub round as current
@@ -284,80 +313,88 @@ advanceRound :: RoundChain -> RoundChain
 advanceRound [] = undefined
 advanceRound (_ : rs) = rs
 
-sortAthletesBasedOnDuration :: Round -> [Athlete] -> [Athlete]
-sortAthletesBasedOnDuration r as =
+sortAthletesBasedOnSortCriteria :: SortCriteria -> String -> [Athlete] -> [Athlete]
+sortAthletesBasedOnSortCriteria sc rndName as =
+  case sc of
+    BestDuration -> sortAthletesBasedOnDuration rndName as
+    TopRanking -> sortAthletesBasedOnRank rndName as
+    _ -> sortAthletesBasedOnDuration rndName as
+
+sortAthletesBasedOnRank :: String -> [Athlete] -> [Athlete]
+sortAthletesBasedOnRank rndName as =
   sortBy
     ( \a1 a2 ->
         compare
-          (roundDurationWithPenalty (Data.Map.lookup (roundName r) (athleteRounds a1)))
-          (roundDurationWithPenalty (Data.Map.lookup (roundName r) (athleteRounds a2)))
+          (getRank (Data.Map.lookup rndName (athleteRounds a1)))
+          (getRank (Data.Map.lookup rndName (athleteRounds a2)))
+    )
+    as
+
+sortAthletesBasedOnDuration :: String -> [Athlete] -> [Athlete]
+sortAthletesBasedOnDuration rndName as =
+  sortBy
+    ( \a1 a2 ->
+        compare
+          (roundDurationWithPenalty (Data.Map.lookup rndName (athleteRounds a1)))
+          (roundDurationWithPenalty (Data.Map.lookup rndName (athleteRounds a2)))
     )
     as
 
 -- Based on the Round selection criteria, for a given list of Athlete, do the selection
 -- and return the list of athletes for the next round
-applyRoundSelectionCriteria :: Round -> [Athlete] -> [Athlete]
-applyRoundSelectionCriteria r as =
-  case roundSelectionCriteria r of
+applyRoundSelectionCriteria :: RoundSelectionCriteria -> SortCriteria -> String -> [Athlete] -> [Athlete]
+applyRoundSelectionCriteria rsc sc r as =
+  case rsc of
     Top8 ->
-      -- Get round from Athlete find round duration with panelty and sort the list, take top 8
-      ( take
-          8
-          ( sortBy
-              ( \a1 a2 ->
-                  compare
-                    (roundDurationWithPenalty (Data.Map.lookup (roundName r) (athleteRounds a1)))
-                    (roundDurationWithPenalty (Data.Map.lookup (roundName r) (athleteRounds a2)))
-              )
-              as
-          )
-      )
+      -- Get round from Athlete find round duration with penalty and sort the list, take top 8
+      take 8 $ sortAthletesBasedOnSortCriteria sc r as
     H1Take1_16_17_32 ->
       -- Take 0th, 15th 17th and 32nd element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 0, sortedAthletes !! 15, sortedAthletes !! 16, sortedAthletes !! 31]
     H2Take8_9_24_25 ->
       -- Take 8th, 9th 24th and 25th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 7, sortedAthletes !! 8, sortedAthletes !! 23, sortedAthletes !! 24]
     H3Take5_12_21_28 ->
       -- Take 5th, 12th 21st and 28th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 4, sortedAthletes !! 11, sortedAthletes !! 20, sortedAthletes !! 27]
     H4Take4_13_20_29 ->
       -- Take 4th, 13th 20th and 29th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 3, sortedAthletes !! 12, sortedAthletes !! 19, sortedAthletes !! 28]
     H5Take3_14_19_30 ->
       -- Take 3rd, 14th 19th and 30th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 2, sortedAthletes !! 13, sortedAthletes !! 18, sortedAthletes !! 29]
     H6Take6_11_22_27 ->
       -- Take 6th, 11th 22nd and 27th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 5, sortedAthletes !! 10, sortedAthletes !! 21, sortedAthletes !! 26]
     H7Take7_10_23_26 ->
       -- Take 7th, 10th 23rd and 26th element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 6, sortedAthletes !! 9, sortedAthletes !! 22, sortedAthletes !! 25]
     H8Take2_15_18_31 ->
       -- Take 2nd, 15th 18th and 31st element from sored list of athletes, sorted on round duration
       do
-        let sortedAthletes = sortAthletesBasedOnDuration r as
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
         [sortedAthletes !! 1, sortedAthletes !! 14, sortedAthletes !! 17, sortedAthletes !! 30]
     TakeTop2 ->
-      take 2 $ sortAthletesBasedOnDuration r as
+      take 2 $ sortAthletesBasedOnSortCriteria sc r as
     TakeTop32 ->
-      take 32 $ sortAthletesBasedOnDuration r as
+      take 32 $ sortAthletesBasedOnSortCriteria sc r as
     TakeTop16 ->
-      take 16 $ sortAthletesBasedOnDuration r as
+      take 16 $ sortAthletesBasedOnSortCriteria sc r as
+    _ -> sortAthletesBasedOnSortCriteria sc r as
 
 -- Getlist of atheletes for the nextRound
 -- Based on the next round selection criteria, use current round for atheletes to make a sorted list
@@ -486,10 +523,10 @@ applyRoundSelectionCriteria r as =
 --                 Round
 --                   { roundName = roundName r,
 --                     roundDuration = d,
---                     panelty = panelty r,
+--                     penalty = penalty r,
 --                     timeStr = timeStr r,
 --                     subRounds = subRounds r,
---                     timeSelectionCriteria = timeSelectionCriteria r,
+--                     sortCriteria = sortCriteria r,
 --                     roundSelectionCriteria = roundSelectionCriteria r
 --                   }
 --               else r
