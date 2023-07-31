@@ -16,8 +16,9 @@ import Data.Aeson
 
 import Data.List.Split
 import Data.Map (empty, lookup)
-import GHC.IO (unsafePerformIO)
 -- import GHC.TopHandler (runIO)
+
+import GHC.Fingerprint (fingerprintString)
 import Lib
 import Network.HTTP.Client
 import Network.HTTP.Types
@@ -271,8 +272,8 @@ getAthletesByRound category rnd = do
             requestHeaders = [(hContentType, "application/json")]
           }
   response <- httpLbs request manager
-  putStrLn $ "getAthletesByRound The status code was: " ++ (show $ statusCode $ responseStatus response)
-  print $ responseBody response
+  -- putStrLn $ "getAthletesByRound The status code was: " ++ (show $ statusCode $ responseStatus response)
+  -- print $ responseBody response
   let res = (decode $ responseBody response)
   case res of
     Nothing -> return []
@@ -295,19 +296,19 @@ getAtheletesByCategory category = do
             requestHeaders = [(hContentType, "application/json")]
           }
   response <- httpLbs request manager
-  putStrLn $ "The status code was: " ++ (show $ statusCode $ responseStatus response)
-  print $ responseBody response
+  putStrLn $ "getAtheletesByCategory The status code was: " ++ (show $ statusCode $ responseStatus response)
+  -- print $ responseBody response
+
   let res = (decode $ responseBody response)
   case res of
     Nothing -> return []
     Just res' -> return res'
 
 -- TODO: remove unsafePerformIO
-joinAthletes :: [Athlete] -> [IO [Athlete]] -> [Athlete]
-joinAthletes [] _ = []
+joinAthletes :: [Athlete] -> [[Athlete]] -> [Athlete]
 joinAthletes a [] = a
 joinAthletes a (rs : rss) = do
-  joinAthletes (a ++ unsafePerformIO rs) rss
+  joinAthletes (a ++ rs) rss
 
 -- Get List of athletes for next round; round name -> category
 getAthletesForNextRound :: String -> String -> IO [Athlete]
@@ -334,88 +335,24 @@ getAthletesForNextRound nxtRnd category = do
         rs' -> do
           -- Get athletes for each selection round
           putStrLn $ "getAthletesForNextRound: rs' : " ++ (show rs')
-          return $
-            joinAthletes
-              []
-              ( map
-                  ( \r -> do
-                      rnd <- getRoundFromStore r
-                      case rnd of
-                        Nothing -> return []
-                        Just rnd' -> do
-                          fmap
-                            ( applyRoundSelectionCriteria
-                                (roundSelectionCriteria nxtRnd')
-                                (sortCriteria rnd')
-                                r
-                            )
-                            (getAthletesByRound category r)
-                  )
-                  rs'
-              )
+          aths <- mapM (applySelectionAndSortCriteriaOnPreviousRound category nxtRnd') rs'
+          putStrLn $ "length of aths = " ++ (show $ length aths)
+          putStrLn $ show aths
+          return $ joinAthletes [] aths
 
--- Get List of athletes for next round; round name -> category
--- getAthletesForNextRound :: String -> String -> IO [Athlete]
--- getAthletesForNextRound nxtRnd category = do
---   -- Get nxtRnd from store
---   round' <- getRoundFromStore nxtRnd
---   case round' of
---     Nothing -> return []
---     Just nxtRnd' -> do
---       let selectRnds = selectionRounds nxtRnd'
---       -- Get athletes for each selection round
---       case selectRnds of
---         [] -> do
---           -- Get All Atheletes
---           -- TODO: appliy roundSelectionCriteria
---           allAthletes <- getAtheletesByCategory category
---           case allAthletes of
---             Nothing -> return []
---             Just aa' -> return aa'
---         rs ->
---           return
---             map
---             ( \r ->
---                 concat $ getAthletesByRound category r
---             )
---             rs
-
--- -- map
--- --   (
--- --     \r -> do
--- --       res <- getAthletesByRound category r
--- --       case res of
--- --       _ -> []
--- --     ) rs
-
--- -- r : rs -> do
--- --   rAthletes <- getAthletesByRound category r
--- --   return $
--- --     Data.List.foldl (++) rAthletes $
--- --       map
--- --         ( \r' ->
--- --             runIO $
--- --               getAtheletesByCategory
--- --                 category
--- --                 r'
--- --         )
--- --         rs
-
--- -- map
--- --   ( \r' ->
--- --       runIO $ getAthletesByRound category r'
--- --   )
--- --   rs
-
--- -- ++ map
--- --   ( \r' -> do
--- --       rsAthletes <-
--- --         ( getAthletesByRound
--- --             category
--- --             r'
--- --           )
--- --       case rsAthletes of
--- --         Nothing -> []
--- --         Just rsRounds' -> rsRounds'
--- --   )
--- --   rs
+applySelectionAndSortCriteriaOnPreviousRound :: String -> Round -> String -> IO [Athlete]
+applySelectionAndSortCriteriaOnPreviousRound category nxtRnd' previousRoundName = do
+  aths <- getAthletesByRound category previousRoundName
+  rnd <-
+    getRoundFromStore
+      previousRoundName
+  case rnd of
+    Nothing -> return []
+    Just rnd' -> do
+      print $ show (roundSelectionCriteria nxtRnd') ++ " " ++ show (sortCriteria rnd') ++ " " ++ previousRoundName ++ " " ++ (show $ length aths)
+      return $
+        applyRoundSelectionCriteria
+          (roundSelectionCriteria nxtRnd')
+          (sortCriteria rnd')
+          previousRoundName
+          aths
