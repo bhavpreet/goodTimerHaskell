@@ -12,11 +12,13 @@ import Data.Aeson
     encode,
     genericToEncoding,
   )
-import Data.List.Split
-import Data.Map (empty, lookup)
 -- import Data.Vector qualified as V
 -- import GHC.TopHandler (runIO)
 
+import Data.List (sortBy)
+import Data.List.Split
+import Data.Map (Map, empty, insert, lookup, size)
+import Data.Maybe (fromMaybe)
 import Lib
 import Network.HTTP.Client
 import Network.HTTP.Types
@@ -132,20 +134,20 @@ addAthletsToStoreFromCSV csvFile = do
   csvData <- readFile csvFile
   let csvLines = lines csvData
   -- parse csv file
-  -- csvValues are in format: [Age, Name, Country, Bib]
-  -- convert to Athelet
+  -- csvValues are in format: [Bib, Name, Country, Age, Category]
+  -- convert to Athlete
   let athletes =
         map
           ( \l ->
               do
                 let v = splitOn "," l
                 Athlete
-                  { athleteAge = read (head v) :: Int,
+                  { bibNo = read (v !! 0) :: Int,
                     athleteName = v !! 1,
                     nationality = v !! 2,
-                    bibNo = read (v !! 3) :: Int,
-                    athleteRounds = Data.Map.empty,
-                    athleteCategory = takeWhile (/= '\r') $ head $ lines $ v !! 4
+                    athleteAge = read (v !! 3) :: Int,
+                    athleteCategory = takeWhile (/= '\r') $ head $ lines $ v !! 4,
+                    athleteRounds = Data.Map.empty
                   }
           )
           $ tail csvLines
@@ -168,9 +170,26 @@ getAtheleteInStore bibNo = do
   print $ responseBody response
   return (decode $ responseBody response)
 
+-- Takes Round, RoundName, SubRoundName, Duration, timeStr and returns updated Round
+updateRoundDuration :: Round -> String -> String -> Duration -> String -> Round
+updateRoundDuration r rnd subRnd duration timeStr =
+  case subRnd of
+    "" -> r {roundDuration = duration, timeStr = timeStr}
+    _ ->
+      r
+        { subRounds =
+            map
+              ( \sr ->
+                  if roundName sr == subRnd
+                    then sr {roundDuration = duration, timeStr = timeStr}
+                    else sr
+              )
+              (subRounds r)
+        }
+
 -- addAthleteTime: takes  bibNo, roundName, time and adds time to round
-addAthleteTime :: Int -> String -> String -> IO String
-addAthleteTime bibNo rnd timeStr = do
+addAthleteTime :: Int -> String -> String -> String -> IO String
+addAthleteTime bibNo rnd subRnd timeStr = do
   let time = convertTimeStrToDuration timeStr
   case time of
     Nothing -> return ("Invalid time format" ++ timeStr)
@@ -189,10 +208,12 @@ addAthleteTime bibNo rnd timeStr = do
               case round' of
                 Nothing -> return "404"
                 Just r -> do
-                  upsertAtheletToStore $ addRoundToAthlete a $ r {roundDuration = t, timeStr = timeStr}
+                  -- upsertAtheletToStore $ addRoundToAthlete a $ r {roundDuration = t, timeStr = timeStr}
+                  upsertAtheletToStore $ addRoundToAthlete a $ updateRoundDuration r rnd subRnd t timeStr
             Just r -> do
               -- update round in atheleteRounds
-              let newRound = r {roundDuration = t, timeStr = timeStr}
+              -- let newRound = r {roundDuration = t, timeStr = timeStr}
+              let newRound = updateRoundDuration r rnd subRnd t timeStr
               upsertAtheletToStore $ addRoundToAthlete a newRound
 
 addAthletePenalty :: Int -> String -> Duration -> String -> IO String
@@ -226,6 +247,56 @@ addAthletePenalty bibNo rnd penalty' penaltyDescription = do
                       { penalty = Penalty {penaltyDuration = penalty', note = ps} : penalty r
                       }
               upsertAtheletToStore $ addRoundToAthlete a newRound
+
+athleteIsNotInArray :: [Athlete] -> Athlete -> Bool
+athleteIsNotInArray [] _ = False
+athleteIsNotInArray (a' : as) a =
+  if bibNo a' /= bibNo a
+    then True
+    else athleteIsNotInArray as a
+
+-- Takes list of category, roundNames, fallbackRound, rankedAthletes (empty) and  returns Athletes with Rank
+getAthletesInSequenceForRounds :: String -> [[String]] -> String -> [Athlete] -> IO [Athlete]
+getAthletesInSequenceForRounds _ [] _ rankedAthletes = return rankedAthletes
+getAthletesInSequenceForRounds category (rnds : rndss) fallbackRound rankedAthletes = do
+  -- Get athletes for rnds
+  athsRnds <-
+    mapM
+      (getAthletesByRound category)
+      rnds
+
+  fallbackAthletes <- getAthletesByRound category fallbackRound
+  -- convert fallbackAthletes into a map
+  let fallbackAthletesMap =
+        foldl
+          ( \acc a -> do
+              let rank' = Data.Map.size acc + 1
+              Data.Map.insert (bibNo a) (a, rank') acc
+          )
+          Data.Map.empty
+          fallbackAthletes
+  -- Add athletes to rankedAthletes if they aren not already there sorted by order in fallbackAthletesMap
+  let rankedAthletes' =
+        -- sort on rank in fallbackAthletesMap
+        sortBy
+          ( \a1 a2 ->
+              compare
+                ( snd $
+                    fromMaybe undefined (Data.Map.lookup (bibNo a1) fallbackAthletesMap)
+                )
+                ( snd $
+                    fromMaybe undefined (Data.Map.lookup (bibNo a2) fallbackAthletesMap)
+                )
+          )
+          $
+          -- filter out athletes that are already in rankedAthletes
+          filter (athleteIsNotInArray rankedAthletes)
+          $
+          -- flatten athsRnds
+          foldl (\acc as -> as ++ acc) [] athsRnds
+  -- Add rankedAthletes' to rankedAthletes
+  let ra = rankedAthletes' ++ rankedAthletes
+  getAthletesInSequenceForRounds category rndss fallbackRound ra
 
 addAthleteRank :: Int -> String -> String -> IO String
 addAthleteRank bibNo rnd rankStr = do
@@ -356,38 +427,48 @@ applySelectionAndSortCriteriaOnPreviousRound category nxtRnd' previousRoundName 
 
 athleteToCSV :: Athlete -> String -> IO ()
 athleteToCSV a rndName = do
-  let round = Data.Map.lookup rndName (athleteRounds a)
-  case round of
+  let round' = Data.Map.lookup rndName (athleteRounds a)
+  case round' of
     Nothing -> do
       return ()
     Just r -> do
       putStrLn $
-        (athleteName a)
+        athleteName a
           ++ ","
           ++ (show $ bibNo a)
           ++ ","
+          ++ (show $ athleteAge a)
+          ++ ","
+          ++ (show $ nationality a)
+          ++ ","
           ++ (show $ athleteCategory a)
           ++ ","
-          ++ show (timeStr r)
+          ++ show (getRoundTimeStr r)
           ++ ","
-          ++ show (roundDuration r)
+          ++ show (getRoundDuration r)
           ++ ","
           ++ show (penalty r)
+          ++ show (rank r)
 
       return ()
 
 athletesToCSV :: [Athlete] -> String -> IO ()
 athletesToCSV [] _ = return ()
-athletesToCSV (a : as) roundName = do
-  athleteToCSV a roundName
-  athletesToCSV as roundName
+athletesToCSV (a : as) roundName =
+  do
+    athleteToCSV a roundName
+    athletesToCSV as roundName
 
 -- Takes RoundName, Category
 listAthletesForRound :: String -> String -> IO ()
 listAthletesForRound rndName cat = do
   aths <- getAthletesForNextRound rndName cat
-  round <- getRoundFromStore rndName
-  case round of
+  round' <- getRoundFromStore rndName
+  putStrLn "-,-,-,-,-,-,-,-"
+  putStrLn "athleteName,bibNo,age,country,category,time,Duration,penalty"
+  case round' of
     Nothing -> return ()
     Just rnd -> do
-      mapM_ (athletesToCSV aths) (selectionRounds rnd)
+      case selectionRounds rnd of
+        [] -> athletesToCSV aths rndName
+        rs -> mapM_ (athletesToCSV aths) rs

@@ -5,7 +5,6 @@
 -- {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 import Lib
-import Network.HTTP.Types (requestHeaderFieldsTooLarge431)
 import Store
 import Test.Hspec
 
@@ -26,6 +25,7 @@ testAddRounds = hspec $ do
                 penalty = [],
                 timeStr = "",
                 subRounds = [],
+                subRoundsSelectionCriteria = BestOfAll,
                 isCurrentRound = False,
                 currentSubRoundName = "",
                 roundCategory = "MEN_PRO",
@@ -46,6 +46,55 @@ testMRF = hspec $ do
     describe "adds a MRF rounds" $ do
       let rounds =
             [ ( Round
+                  { roundName = "WomenDownRiver",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    sortCriteria = BestDuration,
+                    selectionRounds = [],
+                    roundSelectionCriteria = TakeTop32,
+                    roundCategory = "PRO_WOMEN",
+                    subRounds =
+                      [ ( Round
+                            { roundName = "Round1",
+                              roundDuration = 0.0,
+                              rank = 9999,
+                              penalty = [],
+                              timeStr = "",
+                              isCurrentRound = False,
+                              currentSubRoundName = "",
+                              sortCriteria = BestDuration,
+                              selectionRounds = [],
+                              roundSelectionCriteria = TakeTop32,
+                              roundCategory = "PRO_WOMEN",
+                              subRounds = [],
+                              subRoundsSelectionCriteria = BestOfAll
+                            }
+                        ),
+                        ( Round
+                            { roundName = "Round2",
+                              roundDuration = 0.0,
+                              rank = 9999,
+                              penalty = [],
+                              timeStr = "",
+                              isCurrentRound = False,
+                              currentSubRoundName = "",
+                              sortCriteria = BestDuration,
+                              selectionRounds = [],
+                              roundSelectionCriteria = TakeTop32,
+                              roundCategory = "PRO_WOMEN",
+                              subRounds = [],
+                              subRoundsSelectionCriteria = BestOfAll
+                            }
+                        )
+                      ],
+                    subRoundsSelectionCriteria = BestOfAll
+                  }
+              ),
+              ( Round
                   { roundName = "Qualifying",
                     roundDuration = 0.0,
                     rank = 9999,
@@ -58,7 +107,8 @@ testMRF = hspec $ do
                     roundSelectionCriteria = TakeTop32,
                     roundCategory = "MEN_PRO",
                     subRounds =
-                      []
+                      [],
+                    subRoundsSelectionCriteria = BestOfAll
                   }
               ),
               ( Round
@@ -68,6 +118,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -83,6 +134,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -98,6 +150,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -113,6 +166,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -128,6 +182,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -143,6 +198,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -158,6 +214,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -173,6 +230,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -189,6 +247,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -204,6 +263,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -219,6 +279,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -234,6 +295,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -250,6 +312,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -265,6 +328,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -281,6 +345,7 @@ testMRF = hspec $ do
                     penalty = [],
                     timeStr = "",
                     subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
                     roundCategory = "MEN_PRO",
@@ -300,7 +365,7 @@ testAddAthletesToStoreFromCSV :: IO ()
 testAddAthletesToStoreFromCSV = hspec $
   do
     describe "Add Atheletes to Store from CSV" $ do
-      let csvFile = "/Users/bhav/Downloads/menPro.csv"
+      let csvFile = "/Users/bhav/Downloads/pro_women.csv"
       addAtheletesResp <- runIO $ addAthletsToStoreFromCSV csvFile
       it "add Atheletes from CSV file " $ do
         addAtheletesResp `shouldBe` "200"
@@ -311,43 +376,21 @@ exec: addAthleteTime bibNo rnd timeStr
 BIB Time
 -}
 updateAthelteTimeForQualifying = do
-  addAthleteTime 52 "Qualifying" "1:17.263"
-  addAthleteTime 37 "Qualifying" "1:19.888"
-  addAthleteTime 24 "Qualifying" "1:23.700"
-  addAthleteTime 35 "Qualifying" "1:25.650"
-  addAthleteTime 23 "Qualifying" "1:27.465"
-  addAthleteTime 27 "Qualifying" "1:27.901"
-  addAthleteTime 71 "Qualifying" "1:28.053"
-  addAthleteTime 69 "Qualifying" "1:31.269"
-  addAthleteTime 46 "Qualifying" "1:31.661"
-  addAthleteTime 50 "Qualifying" "1:31.898"
-  addAthleteTime 25 "Qualifying" "1:34.626"
-  addAthleteTime 28 "Qualifying" "1:37.820"
-  addAthleteTime 39 "Qualifying" "1:38.349"
-  addAthleteTime 33 "Qualifying" "1:40.608"
-  addAthleteTime 32 "Qualifying" "1:40.941"
-  addAthleteTime 49 "Qualifying" "1:44.281"
-  addAthleteTime 21 "Qualifying" "1:47.970"
-  addAthleteTime 45 "Qualifying" "1:48.947"
-  addAthleteTime 31 "Qualifying" "1:51.255"
-  addAthleteTime 22 "Qualifying" "1:34.171"
-  addAthleteTime 43 "Qualifying" "1:46.643"
-  addAthleteTime 40 "Qualifying" "1:52.007"
-  addAthleteTime 47 "Qualifying" "2:04.282"
-  addAthleteTime 53 "Qualifying" "1:32.078"
-  addAthleteTime 44 "Qualifying" "1:32.773"
-  addAthleteTime 36 "Qualifying" "1:29.296"
-  addAthleteTime 51 "Qualifying" "2:04.370"
-  addAthleteTime 70 "Qualifying" "1:31.101"
-  addAthleteTime 54 "Qualifying" "1:39.112"
-  addAthleteTime 48 "Qualifying" "1:41.738"
-  addAthleteTime 30 "Qualifying" "1:43.355"
-  addAthleteTime 38 "Qualifying" "1:53.780"
-  addAthleteTime 41 "Qualifying" "1:26.971"
-  addAthleteTime 34 "Qualifying" "1:46.993"
-  addAthleteTime 29 "Qualifying" "DNS"
-  addAthleteTime 42 "Qualifying" "DNS"
-  addAthleteTime 55 "Qualifying" "1:39.700"
+  addAthleteTime 1 "WomenDownRiver" "Round1" "1:58.546"
+  addAthleteTime 3 "WomenDownRiver" "Round1" "2:03.697"
+  addAthleteTime 4 "WomenDownRiver" "Round1" "2:04.358"
+  addAthleteTime 5 "WomenDownRiver" "Round1" "2:07.985"
+  addAthleteTime 2 "WomenDownRiver" "Round1" "2:13.271"
+  addAthleteTime 7 "WomenDownRiver" "Round1" "2:26.220"
+  addAthleteTime 6 "WomenDownRiver" "Round1" "2:19.584"
+
+  addAthleteTime 1 "WomenDownRiver" "Round2" "1:57.542"
+  addAthleteTime 3 "WomenDownRiver" "Round2" "2:01.708"
+  addAthleteTime 4 "WomenDownRiver" "Round2" "2:05.288"
+  addAthleteTime 5 "WomenDownRiver" "Round2" "2:04.870"
+  addAthleteTime 2 "WomenDownRiver" "Round2" "2:29.523"
+  addAthleteTime 7 "WomenDownRiver" "Round2" "2:18.127"
+  addAthleteTime 6 "WomenDownRiver" "Round2" "DNF"
 
 -- Add panelty
 {-

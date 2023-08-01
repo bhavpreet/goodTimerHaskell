@@ -33,6 +33,7 @@ dependencies:
 - QuickCheck == 2.14.3
 - containers
 - cassava
+- MissingH
 
 ghc-options:
 - -Wall

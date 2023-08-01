@@ -13,7 +13,7 @@ import Data.Aeson
     genericToEncoding,
   )
 import Data.Csv
-import Data.List (sortBy)
+import Data.List (intercalate, sortBy)
 import Data.List.Split
 import Data.Map (Map, empty, insert, lookup)
 import GHC.Generics
@@ -59,6 +59,7 @@ data RoundSelectionCriteria
   | TakeTop2
   | TakeTop32
   | TakeTop16
+  | Top3Winners
   deriving (Show, Generic)
 
 instance ToJSON RoundSelectionCriteria where
@@ -172,6 +173,13 @@ applySubRoundsSelectionCriteria r =
   where
     bestOfAll = minimum (map roundDuration (subRounds r))
     bestOf2 = minimum (map roundDuration (subRounds r))
+
+getRoundTimeStr :: Round -> String
+getRoundTimeStr r = do
+  let sr = Lib.subRounds r
+  if null sr
+    then timeStr r
+    else intercalate ", " $ map getRoundTimeStr sr
 
 getRoundDuration :: Round -> Duration
 getRoundDuration r = do
@@ -445,6 +453,8 @@ applyRoundSelectionCriteria rsc sc r as =
       take 32 $ sortAthletesBasedOnSortCriteria sc r as
     TakeTop16 ->
       take 16 $ sortAthletesBasedOnSortCriteria sc r as
+    Top3Winners ->
+      take 3 $ sortAthletesBasedOnSortCriteria sc r as
     _ -> sortAthletesBasedOnSortCriteria sc r as
 
 -- Getlist of atheletes for the nextRound
