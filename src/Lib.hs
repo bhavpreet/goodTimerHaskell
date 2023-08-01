@@ -12,10 +12,11 @@ import Data.Aeson
     encode,
     genericToEncoding,
   )
+import Data.Csv
 import Data.List (sortBy)
 import Data.List.Split
-import Data.Map (Map, insert, lookup)
-import GHC.Generics (Generic)
+import Data.Map (Map, empty, insert, lookup)
+import GHC.Generics
 import Gogol.FireStore as FS ()
 import Network.HTTP.Client
 import Network.HTTP.Types
@@ -36,9 +37,13 @@ instance ToJSON SortCriteria where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding Data.Aeson.defaultOptions
 
 instance FromJSON SortCriteria
+
+instance FromRecord SortCriteria
+
+instance ToRecord SortCriteria
 
 data RoundSelectionCriteria
   = Top8
@@ -60,9 +65,26 @@ instance ToJSON RoundSelectionCriteria where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding Data.Aeson.defaultOptions
 
 instance FromJSON RoundSelectionCriteria
+
+instance FromRecord RoundSelectionCriteria
+
+instance ToRecord RoundSelectionCriteria
+
+data SubRoundsSelectionCriteria
+  = BestOfAll
+  | BestOf2
+  deriving (Show, Generic)
+
+instance FromJSON SubRoundsSelectionCriteria
+
+instance ToJSON SubRoundsSelectionCriteria
+
+instance FromRecord SubRoundsSelectionCriteria
+
+instance ToRecord SubRoundsSelectionCriteria
 
 type Category = String
 
@@ -75,6 +97,7 @@ data Round = Round
     roundCategory :: Category,
     isCurrentRound :: Bool,
     subRounds :: [Round],
+    subRoundsSelectionCriteria :: SubRoundsSelectionCriteria,
     currentSubRoundName :: String,
     sortCriteria :: SortCriteria,
     selectionRounds :: [String],
@@ -86,9 +109,11 @@ instance ToJSON Round where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding Data.Aeson.defaultOptions
 
 instance FromJSON Round
+
+-- instance ToRecord Round
 
 data Penalty = Penalty
   { penaltyDuration :: Duration,
@@ -100,9 +125,13 @@ instance ToJSON Penalty where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding Data.Aeson.defaultOptions
 
 instance FromJSON Penalty
+
+instance FromRecord Penalty
+
+instance ToRecord Penalty
 
 -- Athlete data type for storing athlete information and round chanin
 data Athlete = Athlete
@@ -119,9 +148,13 @@ instance ToJSON Athlete where
   -- No need to provide a toJSON implementation.
   -- For efficiency, we write a simple toEncoding implementation, as
   -- the default version uses toJSON.
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding Data.Aeson.defaultOptions
 
 instance FromJSON Athlete
+
+-- instance FromRecord Athlete
+
+-- instance ToRecord Athlete
 
 getRank :: Maybe Round -> Int
 getRank Nothing = 99999
@@ -131,17 +164,35 @@ athleteRoundDurationWithPenalty :: Athlete -> String -> Duration
 athleteRoundDurationWithPenalty a roundName =
   roundDurationWithPenalty (Data.Map.lookup roundName (athleteRounds a))
 
+applySubRoundsSelectionCriteria :: Round -> Duration
+applySubRoundsSelectionCriteria r =
+  case subRoundsSelectionCriteria r of
+    BestOfAll -> bestOfAll
+    BestOf2 -> bestOf2
+  where
+    bestOfAll = minimum (map roundDuration (subRounds r))
+    bestOf2 = minimum (map roundDuration (subRounds r))
+
+getRoundDuration :: Round -> Duration
+getRoundDuration r = do
+  let subRounds = Lib.subRounds r
+  if null subRounds
+    then roundDuration r
+    else applySubRoundsSelectionCriteria r
+
 -- roundDurationWithPenalty adds roundtime with penaltytime and returns the in Duration
 roundDurationWithPenalty :: Maybe Round -> Duration
 roundDurationWithPenalty Nothing = 99999.0
-roundDurationWithPenalty
-  ( Just
-      Round
-        { roundDuration = rt,
-          penalty = p
-        }
-    ) =
-    rt + sum (map penaltyDuration p)
+-- roundDurationWithPenalty
+--   ( Just
+--       Round
+--         { roundDuration = rt,
+--           penalty = p
+--         }
+--     ) =
+--     rt + sum (map penaltyDuration p)
+roundDurationWithPenalty (Just r) =
+  getRoundDuration r + sum (map penaltyDuration (penalty r))
 
 newtype Athletes = Athletes [Athlete] deriving (Show)
 

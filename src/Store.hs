@@ -12,13 +12,11 @@ import Data.Aeson
     encode,
     genericToEncoding,
   )
--- import runIO
-
 import Data.List.Split
 import Data.Map (empty, lookup)
+-- import Data.Vector qualified as V
 -- import GHC.TopHandler (runIO)
 
-import GHC.Fingerprint (fingerprintString)
 import Lib
 import Network.HTTP.Client
 import Network.HTTP.Types
@@ -129,11 +127,11 @@ addAtheletesToStore (a : as) =
 -- Add athlets from CSV file
 addAthletsToStoreFromCSV :: String -> IO String
 addAthletsToStoreFromCSV csvFile = do
+  -- csvData <- BL.readFile "salaries.csv"
   -- read csv file
   csvData <- readFile csvFile
-  -- parse csv file
   let csvLines = lines csvData
-  print csvLines
+  -- parse csv file
   -- csvValues are in format: [Age, Name, Country, Bib]
   -- convert to Athelet
   let athletes =
@@ -142,11 +140,11 @@ addAthletsToStoreFromCSV csvFile = do
               do
                 let v = splitOn "," l
                 Athlete
-                  { athleteName = v !! 1,
-                    athleteAge = read (head v) :: Int,
+                  { athleteAge = read (head v) :: Int,
+                    athleteName = v !! 1,
                     nationality = v !! 2,
                     bibNo = read (v !! 3) :: Int,
-                    athleteRounds = empty,
+                    athleteRounds = Data.Map.empty,
                     athleteCategory = takeWhile (/= '\r') $ head $ lines $ v !! 4
                   }
           )
@@ -230,11 +228,11 @@ addAthletePenalty bibNo rnd penalty' penaltyDescription = do
               upsertAtheletToStore $ addRoundToAthlete a newRound
 
 addAthleteRank :: Int -> String -> String -> IO String
-addAthleteRank bibNo rnd timeStr = do
-  let rank = convertRankStrToInt timeStr
-  case rank of
+addAthleteRank bibNo rnd rankStr = do
+  let rank' = convertRankStrToInt rankStr
+  case rank' of
     Nothing -> return "Invalid rank format"
-    Just rank' -> do
+    Just rank'' -> do
       athlete <- getAtheleteInStore bibNo
       case athlete of
         Nothing -> return "404"
@@ -249,10 +247,10 @@ addAthleteRank bibNo rnd timeStr = do
               case round' of
                 Nothing -> return "404"
                 Just r -> do
-                  upsertAtheletToStore $ addRoundToAthlete a $ r {rank = rank', timeStr = timeStr}
+                  upsertAtheletToStore $ addRoundToAthlete a $ r {rank = rank'', timeStr = rankStr}
             Just r -> do
               -- update round in atheleteRounds
-              let newRound = r {rank = rank', timeStr = timeStr}
+              let newRound = r {rank = rank'', timeStr = rankStr}
               upsertAtheletToStore $ addRoundToAthlete a newRound
 
 -- getAthletesByRound: takes roundName and returns list of atheletes
@@ -304,7 +302,6 @@ getAtheletesByCategory category = do
     Nothing -> return []
     Just res' -> return res'
 
--- TODO: remove unsafePerformIO
 joinAthletes :: [Athlete] -> [[Athlete]] -> [Athlete]
 joinAthletes a [] = a
 joinAthletes a (rs : rss) = do
@@ -356,3 +353,41 @@ applySelectionAndSortCriteriaOnPreviousRound category nxtRnd' previousRoundName 
           (sortCriteria rnd')
           previousRoundName
           aths
+
+athleteToCSV :: Athlete -> String -> IO ()
+athleteToCSV a rndName = do
+  let round = Data.Map.lookup rndName (athleteRounds a)
+  case round of
+    Nothing -> do
+      return ()
+    Just r -> do
+      putStrLn $
+        (athleteName a)
+          ++ ","
+          ++ (show $ bibNo a)
+          ++ ","
+          ++ (show $ athleteCategory a)
+          ++ ","
+          ++ show (timeStr r)
+          ++ ","
+          ++ show (roundDuration r)
+          ++ ","
+          ++ show (penalty r)
+
+      return ()
+
+athletesToCSV :: [Athlete] -> String -> IO ()
+athletesToCSV [] _ = return ()
+athletesToCSV (a : as) roundName = do
+  athleteToCSV a roundName
+  athletesToCSV as roundName
+
+-- Takes RoundName, Category
+listAthletesForRound :: String -> String -> IO ()
+listAthletesForRound rndName cat = do
+  aths <- getAthletesForNextRound rndName cat
+  round <- getRoundFromStore rndName
+  case round of
+    Nothing -> return ()
+    Just rnd -> do
+      mapM_ (athletesToCSV aths) (selectionRounds rnd)

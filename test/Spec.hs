@@ -5,6 +5,7 @@
 -- {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 import Lib
+import Network.HTTP.Types (requestHeaderFieldsTooLarge431)
 import Store
 import Test.Hspec
 
@@ -369,15 +370,4 @@ addPanelty = do
   addAthletePenalty 41 "Qualifying" 250 "Gate 06, 07, 08, 09, 10"
   addAthletePenalty 34 "Qualifying" 100 "Gate 06, 07, 08, 10"
 
--- for athletes display times with panelty
--- listTimeWithPenalty :: [Athlete] -> String -> IO ()
--- listTimeWithPenalty as rnd =
---   do
---     map
---    ( \a ->
---        putStrLn $
---          show (athleteRoundDurationWithPenalty a rnd :: Double)
---    )
---    as
---    return
---    ()
+-- Heat1
