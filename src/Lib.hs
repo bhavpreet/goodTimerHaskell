@@ -60,6 +60,7 @@ data RoundSelectionCriteria
   | TakeTop32
   | TakeTop16
   | Top3Winners
+  | TakeAll
   deriving (Show, Generic)
 
 instance ToJSON RoundSelectionCriteria where
@@ -171,8 +172,8 @@ applySubRoundsSelectionCriteria r =
     BestOfAll -> bestOfAll
     BestOf2 -> bestOf2
   where
-    bestOfAll = minimum (map roundDuration (subRounds r))
-    bestOf2 = minimum (map roundDuration (subRounds r))
+    bestOfAll = minimum (map getRoundDuration (subRounds r))
+    bestOf2 = minimum (map getRoundDuration (subRounds r))
 
 getRoundTimeStr :: Round -> String
 getRoundTimeStr r = do
@@ -185,7 +186,7 @@ getRoundDuration :: Round -> Duration
 getRoundDuration r = do
   let subRounds = Lib.subRounds r
   if null subRounds
-    then roundDuration r
+    then roundDuration r + sum (map penaltyDuration (penalty r))
     else applySubRoundsSelectionCriteria r
 
 -- roundDurationWithPenalty adds roundtime with penaltytime and returns the in Duration
@@ -200,7 +201,7 @@ roundDurationWithPenalty Nothing = 99999.0
 --     ) =
 --     rt + sum (map penaltyDuration p)
 roundDurationWithPenalty (Just r) =
-  getRoundDuration r + sum (map penaltyDuration (penalty r))
+  getRoundDuration r
 
 newtype Athletes = Athletes [Athlete] deriving (Show)
 
@@ -455,159 +456,8 @@ applyRoundSelectionCriteria rsc sc r as =
       take 16 $ sortAthletesBasedOnSortCriteria sc r as
     Top3Winners ->
       take 3 $ sortAthletesBasedOnSortCriteria sc r as
+    TakeAll -> sortAthletesBasedOnSortCriteria sc r as
     _ -> sortAthletesBasedOnSortCriteria sc r as
-
--- Getlist of atheletes for the nextRound
--- Based on the next round selection criteria, use current round for atheletes to make a sorted list
--- getAthletesForNextRound :: [Athlete] -> String -> Maybe Athletes
--- getAthletesForNextRound as nextRoundName = do
---   -- For each athlete for a given nextRoundName compute the roundChainDurationWithPenalty for previous rounds
---   -- and sort the athletes based on the round selection criteria
---   map
---     ( \a ->
---         case lookup nextRoundName (athleteRounds a) of
---           Nothing -> Nothing
---           Just r ->
---             Just
---               ( a
---                   { athleteRounds =
---                       insert
---                         nextRoundName
---                         (r {roundChainDurationWithPenalty = roundChainDurationWithPenalty (makeRoundChain r (athleteRounds a))})
---                         (athleteRounds a)
---                   }
---               )
---               -- case roundSelectionCriteria (lookup nextRoundName (athleteRounds $ head a)) of
---               --   AscendingDuration ->
---               --     Nothing
---               --   Top8 ->
---               --     Nothing
---     )
---     as
-
--- sort athletes based on the round selection criteria
--- sortAthletes :: Athletes -> String -> Athletes
--- sortAthletes (Athletes as) roundName =
---   case roundSelectionCriteria (lookup roundName (athleteRounds $ head as)) of
---     AscendingDuration ->
---       Athletes
---         ( sortBy
---             ( \a1 a2 ->
---                 compare
---                   ( roundChainDurationWithPenalty
---                       (makeRoundChain (getCurrentRound (athleteRounds a1)) (athleteRounds a1))
---                   )
---                   ( roundChainDurationWithPenalty
---                       (makeRoundChain (getCurrentRound (athleteRounds a2)) (athleteRounds a2))
---                   )
---             )
---             as
---         )
---     Top8 ->
---       Athletes
---         ( take
---             8
---             ( sortBy
---                 ( \a1 a2 ->
---                     compare
---                       (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a1)) (athleteRounds a1)))
---                       (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a2)) (athleteRounds a2)))
---                 )
---                 as
---             )
---         )
---     FirstAndLastGroupBy4 ->
---       Athletes
---         ( take
---             4
---             ( sortBy
---                 ( \a1 a2 ->
---                     compare
---                       (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a1)) (athleteRounds a1)))
---                       (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a2)) (athleteRounds a2)))
---                 )
---                 as
---             )
---             ++ take
---               4
---               ( sortBy
---                   ( \a1 a2 ->
---                       compare
---                         (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a1)) (athleteRounds a1)))
---                         (roundChainDurationWithPenalty (makeRoundChain (getCurrentRound (athleteRounds a2)) (athleteRounds a2)))
---                   )
---                   (reverse as)
---               )
---         )
-
--- Advance round for selected athletes by removing current round
--- advanceAtheleteRound :: Athletes -> Athletes
--- advanceAtheleteRound (Athletes as) =
---   Athletes
---     ( map
---         ( \a ->
---             Athlete (athleteName a) (athleteAge a) (nationality a) (bibNo a) (advanceRound (athleteRounds a))
---         )
---         as
---     )
-
--- updateDurationForAthlete :: Athlete -> String -> Duration -> Maybe Athlete
--- updateDurationForAthlete a rnd dur =
---   a
---     { athleteRounds = do
---         case lookup rnd (athleteRounds a) of
---           Nothing -> Nothing
---           Just r -> do
---             insert rnd (updateDurationForRound r dur) (athleteRounds a)
-
---         map
---           ( \r ->
---               if roundName r == rnd
---                 then r {roundDuration = dur}
---                 else r
---           )
---           (athleteRounds a)
---     }
-
--- update the current round with duration for the athelete
--- updateCurrentAthleteRound :: Athlete -> Duration -> Athlete
--- updateCurrentAthleteRound a d =
---   Athlete
---     (athleteName a)
---     (athleteAge a)
---     (nationality a)
---     (bibNo a)
---     ( map
---         ( \r ->
---             if roundName r == roundName (getCurrentRound (athleteRounds a))
---               then
---                 Round
---                   { roundName = roundName r,
---                     roundDuration = d,
---                     penalty = penalty r,
---                     timeStr = timeStr r,
---                     subRounds = subRounds r,
---                     sortCriteria = sortCriteria r,
---                     roundSelectionCriteria = roundSelectionCriteria r
---                   }
---               else r
---         )
---         (athleteRounds a)
---     )
-
--- Add time to athleteRounds
--- Take list of atheletes, take bib number, take time, add time for current round and update the round for the athlete
--- addTimeToAthleteInAtheletes :: Athletes -> Int -> Duration -> Athletes
--- addTimeToAthleteInAtheletes (Athletes as) n t =
---   Athletes
---     ( map
---         ( \a ->
---             if bibNo a == n
---               then updateCurrentAthleteRound a t
---               else a
---         )
---         as
---     )
 
 parseRoundSubRoundString :: String -> Maybe (String, Maybe String)
 parseRoundSubRoundString rnd =

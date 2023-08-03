@@ -15,7 +15,7 @@ import Data.Aeson
 -- import Data.Vector qualified as V
 -- import GHC.TopHandler (runIO)
 
-import Data.List (sortBy)
+import Data.List (intercalate, sortBy)
 import Data.List.Split
 import Data.Map (Map, empty, insert, lookup, size)
 import Data.Maybe (fromMaybe)
@@ -216,8 +216,12 @@ addAthleteTime bibNo rnd subRnd timeStr = do
               let newRound = updateRoundDuration r rnd subRnd t timeStr
               upsertAtheletToStore $ addRoundToAthlete a newRound
 
-addAthletePenalty :: Int -> String -> Duration -> String -> IO String
-addAthletePenalty bibNo rnd penalty' penaltyDescription = do
+-- addPenaltyToRound :: Round -> Duration -> String -> Round
+-- addPenaltyToRound r penalty' penaltyDescription =
+--   r {penalty = Penalty {penaltyDuration = penalty', note = penaltyDescription} : penalty r}
+
+addAthletePenalty :: Int -> String -> String -> Duration -> String -> IO String
+addAthletePenalty bibNo rnd subRnd penalty' penaltyDescription = do
   case penaltyDescription of
     "" -> return "Add description"
     ps -> do
@@ -241,19 +245,38 @@ addAthletePenalty bibNo rnd penalty' penaltyDescription = do
                         { penalty = Penalty {penaltyDuration = penalty', note = ps} : penalty r
                         }
             Just r -> do
-              -- update round in atheleteRounds
-              let newRound =
-                    r
-                      { penalty = Penalty {penaltyDuration = penalty', note = ps} : penalty r
-                      }
-              upsertAtheletToStore $ addRoundToAthlete a newRound
+              if subRnd == ""
+                then do
+                  -- update round in atheleteRounds
+                  let newRound =
+                        r
+                          { penalty = Penalty {penaltyDuration = penalty', note = ps} : penalty r
+                          }
+                  upsertAtheletToStore $ addRoundToAthlete a newRound
+                else do
+                  -- update subround in atheleteRounds
+                  let newRound =
+                        r
+                          { subRounds =
+                              map
+                                ( \sr ->
+                                    if roundName sr == subRnd
+                                      then sr {penalty = Penalty {penaltyDuration = penalty', note = ps} : penalty sr}
+                                      else sr
+                                )
+                                (subRounds r)
+                          }
+                  upsertAtheletToStore $ addRoundToAthlete a newRound
 
-athleteIsNotInArray :: [Athlete] -> Athlete -> Bool
-athleteIsNotInArray [] _ = False
-athleteIsNotInArray (a' : as) a =
-  if bibNo a' /= bibNo a
+athleteIsInArray :: [Athlete] -> Athlete -> Bool
+athleteIsInArray [] _ = False
+athleteIsInArray (a' : as) a =
+  if bibNo a' == bibNo a
     then True
-    else athleteIsNotInArray as a
+    else athleteIsInArray as a
+
+notAthleteIsInArray :: [Athlete] -> Athlete -> Bool
+notAthleteIsInArray as a = not $ athleteIsInArray as a
 
 -- Takes list of category, roundNames, fallbackRound, rankedAthletes (empty) and  returns Athletes with Rank
 getAthletesInSequenceForRounds :: String -> [[String]] -> String -> [Athlete] -> IO [Athlete]
@@ -262,41 +285,49 @@ getAthletesInSequenceForRounds category (rnds : rndss) fallbackRound rankedAthle
   -- Get athletes for rnds
   athsRnds <-
     mapM
-      (getAthletesByRound category)
+      (getAthletesForNextRound category)
       rnds
 
-  fallbackAthletes <- getAthletesByRound category fallbackRound
+  fallbackAthletes <- getAthletesForNextRound category fallbackRound
   -- convert fallbackAthletes into a map
   let fallbackAthletesMap =
         foldl
-          ( \acc a -> do
-              let rank' = Data.Map.size acc + 1
-              Data.Map.insert (bibNo a) (a, rank') acc
+          ( \acc a ->
+              let rank' = (Data.Map.size acc) + 1
+               in Data.Map.insert (bibNo a) (rank', a) acc
           )
           Data.Map.empty
           fallbackAthletes
+  -- putStrLn $ "fallbackAthletesMap: " ++ show fallbackAthletesMap
+  let flattenedAthRnds = foldl (\acc as -> as ++ acc) [] athsRnds
+  -- putStrLn $ "flattened athRnds: " ++ show (foldl (\acc as -> as ++ acc) [] athsRnds)
+  -- putStrLn $
+  --   "filtered athletes"
+  --     ++ show
+  --       (filter (notAthleteIsInArray rankedAthletes) flattenedAthRnds)
+
   -- Add athletes to rankedAthletes if they aren not already there sorted by order in fallbackAthletesMap
   let rankedAthletes' =
         -- sort on rank in fallbackAthletesMap
         sortBy
           ( \a1 a2 ->
               compare
-                ( snd $
+                ( fst $
                     fromMaybe undefined (Data.Map.lookup (bibNo a1) fallbackAthletesMap)
                 )
-                ( snd $
+                ( fst $
                     fromMaybe undefined (Data.Map.lookup (bibNo a2) fallbackAthletesMap)
                 )
           )
           $
           -- filter out athletes that are already in rankedAthletes
-          filter (athleteIsNotInArray rankedAthletes)
-          $
-          -- flatten athsRnds
-          foldl (\acc as -> as ++ acc) [] athsRnds
+          filter (notAthleteIsInArray rankedAthletes) flattenedAthRnds
   -- Add rankedAthletes' to rankedAthletes
   let ra = rankedAthletes' ++ rankedAthletes
+  -- putStrLn $ "ra: " ++ show ra
   getAthletesInSequenceForRounds category rndss fallbackRound ra
+
+-- getAthletesInSequenceForRounds _ _ _ _ = return []
 
 addAthleteRank :: Int -> String -> String -> IO String
 addAthleteRank bibNo rnd rankStr = do
@@ -381,7 +412,7 @@ joinAthletes a (rs : rss) = do
 -- Get List of athletes for next round; round name -> category
 getAthletesForNextRound :: String -> String -> IO [Athlete]
 getAthletesForNextRound [] _ = return []
-getAthletesForNextRound nxtRnd category = do
+getAthletesForNextRound category nxtRnd = do
   -- Get nxtRnd from store
   round' <- getRoundFromStore nxtRnd
   case round' of
@@ -425,8 +456,16 @@ applySelectionAndSortCriteriaOnPreviousRound category nxtRnd' previousRoundName 
           previousRoundName
           aths
 
-athleteToCSV :: Athlete -> String -> IO ()
-athleteToCSV a rndName = do
+penaltyToStr :: Round -> String
+penaltyToStr r = do
+  -- Check if there are subrounds then add their penalty otherwise originial round penalty
+  let subRnds = subRounds r
+  case subRnds of
+    [] -> show $ penalty r
+    sr -> intercalate ", " $ map (\x -> (roundName x) ++ " = " ++ (show $ penalty x)) sr
+
+athleteToCSV :: String -> Athlete -> IO ()
+athleteToCSV rndName a = do
   let round' = Data.Map.lookup rndName (athleteRounds a)
   case round' of
     Nothing -> do
@@ -447,22 +486,22 @@ athleteToCSV a rndName = do
           ++ ","
           ++ show (getRoundDuration r)
           ++ ","
-          ++ show (penalty r)
+          ++ show (penaltyToStr r)
           ++ show (rank r)
 
       return ()
 
-athletesToCSV :: [Athlete] -> String -> IO ()
-athletesToCSV [] _ = return ()
-athletesToCSV (a : as) roundName =
+athletesToCSV :: String -> [Athlete] -> IO ()
+athletesToCSV _ [] = return ()
+athletesToCSV roundName (a : as) =
   do
-    athleteToCSV a roundName
-    athletesToCSV as roundName
+    athleteToCSV roundName a
+    athletesToCSV roundName as
 
 -- Takes RoundName, Category
 listAthletesForRound :: String -> String -> IO ()
-listAthletesForRound rndName cat = do
-  aths <- getAthletesForNextRound rndName cat
+listAthletesForRound cat rndName = do
+  aths <- getAthletesForNextRound cat rndName
   round' <- getRoundFromStore rndName
   putStrLn "-,-,-,-,-,-,-,-"
   putStrLn "athleteName,bibNo,age,country,category,time,Duration,penalty"
@@ -470,5 +509,5 @@ listAthletesForRound rndName cat = do
     Nothing -> return ()
     Just rnd -> do
       case selectionRounds rnd of
-        [] -> athletesToCSV aths rndName
-        rs -> mapM_ (athletesToCSV aths) rs
+        [] -> athletesToCSV rndName aths
+        rs -> mapM_ (\r -> athletesToCSV r aths) rs
