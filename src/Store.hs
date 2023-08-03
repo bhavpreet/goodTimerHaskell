@@ -462,7 +462,7 @@ penaltyToStr r = do
   let subRnds = subRounds r
   case subRnds of
     [] -> show $ penalty r
-    sr -> intercalate ", " $ map (\x -> (roundName x) ++ " = " ++ (show $ penalty x)) sr
+    sr -> intercalate "\\, " $ map (\x -> (roundName x) ++ " = " ++ (show $ penalty x)) sr
 
 athleteToCSV :: String -> Athlete -> IO ()
 athleteToCSV rndName a = do
