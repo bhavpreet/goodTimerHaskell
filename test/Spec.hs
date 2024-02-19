@@ -47,7 +47,7 @@ testMRF = hspec $ do
     describe "adds a MRF rounds" $ do
       let rounds =
             [ ( Round
-                  { roundName = "WomenDownRiver",
+                  { roundName = "QualifyingWomen",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -56,64 +56,15 @@ testMRF = hspec $ do
                     currentSubRoundName = "",
                     sortCriteria = BestDuration,
                     selectionRounds = [],
-                    roundSelectionCriteria = TakeTop32,
-                    roundCategory = "PRO_WOMEN",
-                    subRounds =
-                      [ ( Round
-                            { roundName = "Round1",
-                              roundDuration = 0.0,
-                              rank = 9999,
-                              penalty = [],
-                              timeStr = "",
-                              isCurrentRound = False,
-                              currentSubRoundName = "",
-                              sortCriteria = BestDuration,
-                              selectionRounds = [],
-                              roundSelectionCriteria = TakeTop32,
-                              roundCategory = "PRO_WOMEN",
-                              subRounds = [],
-                              subRoundsSelectionCriteria = BestOfAll
-                            }
-                        ),
-                        ( Round
-                            { roundName = "Round2",
-                              roundDuration = 0.0,
-                              rank = 9999,
-                              penalty = [],
-                              timeStr = "",
-                              isCurrentRound = False,
-                              currentSubRoundName = "",
-                              sortCriteria = BestDuration,
-                              selectionRounds = [],
-                              roundSelectionCriteria = TakeTop32,
-                              roundCategory = "PRO_WOMEN",
-                              subRounds = [],
-                              subRoundsSelectionCriteria = BestOfAll
-                            }
-                        )
-                      ],
-                    subRoundsSelectionCriteria = BestOfAll
-                  }
-              ),
-              ( Round
-                  { roundName = "Qualifying",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    sortCriteria = BestDuration,
-                    selectionRounds = [],
-                    roundSelectionCriteria = TakeTop32,
-                    roundCategory = "MEN_PRO",
+                    roundSelectionCriteria = TakeTop16,
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     subRounds =
                       [],
                     subRoundsSelectionCriteria = BestOfAll
                   }
               ),
               ( Round
-                  { roundName = "Heat1",
+                  { roundName = "WQF1",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -122,14 +73,14 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H1Take1_16_17_32
+                    selectionRounds = ["QualifyingWomen"],
+                    roundSelectionCriteria = WH1Take1_8_12_16
                   }
               ),
               ( Round
-                  { roundName = "Heat2",
+                  { roundName = "WQF2",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -138,14 +89,14 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H2Take8_9_24_25
+                    selectionRounds = ["QualifyingWomen"],
+                    roundSelectionCriteria = WH2Take4_5_9_13
                   }
               ),
               ( Round
-                  { roundName = "Heat3",
+                  { roundName = "WQF3",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -154,14 +105,14 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H3Take5_12_21_28
+                    selectionRounds = ["QualifyingWomen"],
+                    roundSelectionCriteria = WH3Take3_6_10_14
                   }
               ),
               ( Round
-                  { roundName = "Heat4",
+                  { roundName = "WQF4",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -170,79 +121,15 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H4Take4_13_20_29
-                  }
-              ),
-              ( Round
-                  { roundName = "Heat5",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H5Take3_14_19_30
-                  }
-              ),
-              ( Round
-                  { roundName = "Heat6",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H6Take6_11_22_27
-                  }
-              ),
-              ( Round
-                  { roundName = "Heat7",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H7Take7_10_23_26
-                  }
-              ),
-              ( Round
-                  { roundName = "Heat8",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["Qualifying"],
-                    roundSelectionCriteria = H8Take2_15_18_31
+                    selectionRounds = ["QualifyingWomen"],
+                    roundSelectionCriteria = WH4Take2_7_11_15
                   }
               ),
               -- QuarterFinals
               ( Round
-                  { roundName = "QF1",
+                  { roundName = "WSF1",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -251,14 +138,14 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Heat1", "Heat2"],
+                    selectionRounds = ["WQF1", "WQF2"],
                     roundSelectionCriteria = TakeTop2
                   }
               ),
               ( Round
-                  { roundName = "QF2",
+                  { roundName = "WSF2",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -267,14 +154,14 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Heat3", "Heat4"],
+                    selectionRounds = ["WQF3", "WQF4"],
                     roundSelectionCriteria = TakeTop2
                   }
               ),
               ( Round
-                  { roundName = "QF3",
+                  { roundName = "WOMEN_INT_FINAL",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -283,81 +170,15 @@ testMRF = hspec $ do
                     subRoundsSelectionCriteria = BestOfAll,
                     isCurrentRound = False,
                     currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
+                    roundCategory = "WOMEN_INTERMEDIATE",
                     sortCriteria = TopRanking,
-                    selectionRounds = ["Heat5", "Heat6"],
+                    selectionRounds = ["WSF1", "WSF2"],
                     roundSelectionCriteria = TakeTop2
                   }
               ),
+              -- MEN
               ( Round
-                  { roundName = "QF4",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["Heat7", "Heat8"],
-                    roundSelectionCriteria = TakeTop2
-                  }
-              ),
-              -- SemiFinals
-              ( Round
-                  { roundName = "SF1",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["QF1", "QF2"],
-                    roundSelectionCriteria = TakeTop2
-                  }
-              ),
-              ( Round
-                  { roundName = "SF2",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["QF3", "QF4"],
-                    roundSelectionCriteria = TakeTop2
-                  }
-              ),
-              -- Finals
-              ( Round
-                  { roundName = "Final",
-                    roundDuration = 0.0,
-                    rank = 9999,
-                    penalty = [],
-                    timeStr = "",
-                    subRounds = [],
-                    subRoundsSelectionCriteria = BestOfAll,
-                    isCurrentRound = False,
-                    currentSubRoundName = "",
-                    roundCategory = "MEN_PRO",
-                    sortCriteria = TopRanking,
-                    selectionRounds = ["SF1", "SF2"],
-                    roundSelectionCriteria = TakeTop2
-                  }
-              ),
-              -- Amature round
-              ( Round
-                  { roundName = "Amature",
+                  { roundName = "QualifyingMen",
                     roundDuration = 0.0,
                     rank = 9999,
                     penalty = [],
@@ -366,43 +187,123 @@ testMRF = hspec $ do
                     currentSubRoundName = "",
                     sortCriteria = BestDuration,
                     selectionRounds = [],
-                    roundSelectionCriteria = TakeTop32,
-                    roundCategory = "MEN_AMATURE",
+                    roundSelectionCriteria = TakeTop16,
+                    roundCategory = "MEN_INTERMEDIATE",
                     subRounds =
-                      [ ( Round
-                            { roundName = "Round1",
-                              roundDuration = 0.0,
-                              rank = 9999,
-                              penalty = [],
-                              timeStr = "",
-                              isCurrentRound = False,
-                              currentSubRoundName = "",
-                              sortCriteria = BestDuration,
-                              selectionRounds = [],
-                              roundSelectionCriteria = TakeTop32,
-                              roundCategory = "MEN_AMATURE",
-                              subRounds = [],
-                              subRoundsSelectionCriteria = BestOfAll
-                            }
-                        ),
-                        ( Round
-                            { roundName = "Round2",
-                              roundDuration = 0.0,
-                              rank = 9999,
-                              penalty = [],
-                              timeStr = "",
-                              isCurrentRound = False,
-                              currentSubRoundName = "",
-                              sortCriteria = BestDuration,
-                              selectionRounds = [],
-                              roundSelectionCriteria = TakeTop32,
-                              roundCategory = "MEN_AMATURE",
-                              subRounds = [],
-                              subRoundsSelectionCriteria = BestOfAll
-                            }
-                        )
-                      ],
+                      [],
                     subRoundsSelectionCriteria = BestOfAll
+                  }
+              ),
+              ( Round
+                  { roundName = "MQF1",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["QualifyingMen"],
+                    roundSelectionCriteria = WH1Take1_8_12_16
+                  }
+              ),
+              ( Round
+                  { roundName = "MQF2",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["QualifyingMen"],
+                    roundSelectionCriteria = WH2Take4_5_9_13
+                  }
+              ),
+              ( Round
+                  { roundName = "MQF3",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["QualifyingMen"],
+                    roundSelectionCriteria = WH3Take3_6_10_14
+                  }
+              ),
+              ( Round
+                  { roundName = "MQF4",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["QualifyingMen"],
+                    roundSelectionCriteria = WH4Take2_7_11_15
+                  }
+              ),
+              ( Round
+                  { roundName = "MSF1",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["MQF1", "MQF2"],
+                    roundSelectionCriteria = TakeTop2
+                  }
+              ),
+              ( Round
+                  { roundName = "MSF2",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["MQF3", "MQF4"],
+                    roundSelectionCriteria = TakeTop2
+                  }
+              ),
+              ( Round
+                  { roundName = "MEN_INT_FINAL",
+                    roundDuration = 0.0,
+                    rank = 9999,
+                    penalty = [],
+                    timeStr = "",
+                    subRounds = [],
+                    subRoundsSelectionCriteria = BestOfAll,
+                    isCurrentRound = False,
+                    currentSubRoundName = "",
+                    roundCategory = "MEN_INTERMEDIATE",
+                    sortCriteria = TopRanking,
+                    selectionRounds = ["MSF1", "MSF2"],
+                    roundSelectionCriteria = TakeTop2
                   }
               )
             ]
@@ -536,3 +437,22 @@ addAmatureTimes = do
 listAmatures = do
   wa <- getAthletesInSequenceForRounds "MEN_AMATURE" [["Amature"]] "Amature" []
   athletesToCSV "Amature" wa
+
+addIntermediateWomen = do
+  addAthleteTime 21 "QualifyingWomen" "" "1:44.221"
+  addAthleteTime 22 "QualifyingWomen" "" "2:00.284"
+  addAthleteTime 23 "QualifyingWomen" "" "1:42.705"
+  addAthleteTime 24 "QualifyingWomen" "" "1:56.676"
+  addAthleteTime 25 "QualifyingWomen" "" "1:48.837"
+  addAthleteTime 26 "QualifyingWomen" "" "DNS"
+  addAthleteTime 27 "QualifyingWomen" "" "DNF"
+  addAthleteTime 28 "QualifyingWomen" "" "DNF"
+  addAthleteTime 29 "QualifyingWomen" "" "3:06.595"
+  addAthleteTime 30 "QualifyingWomen" "" "DNF"
+  addAthleteTime 31 "QualifyingWomen" "" "2:10.746"
+
+addIntermediateWomenPenalty = do
+  addAthletePenalty 31 "QualifyingWomen" "" 70 "Gate 2"
+  addAthletePenalty 29 "QualifyingWomen" "" 80 "Gate 1"
+  addAthletePenalty 27 "QualifyingWomen" "" 120 "Gate 2,4"
+  addAthletePenalty 30 "QualifyingWomen" "" 180 "Gate 2,3,4"

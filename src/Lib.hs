@@ -61,6 +61,10 @@ data RoundSelectionCriteria
   | TakeTop16
   | Top3Winners
   | TakeAll
+  | WH1Take1_8_12_16
+  | WH2Take4_5_9_13
+  | WH3Take3_6_10_14
+  | WH4Take2_7_11_15
   deriving (Show, Generic)
 
 instance ToJSON RoundSelectionCriteria where
@@ -457,6 +461,26 @@ applyRoundSelectionCriteria rsc sc r as =
     Top3Winners ->
       take 3 $ sortAthletesBasedOnSortCriteria sc r as
     TakeAll -> sortAthletesBasedOnSortCriteria sc r as
+    WH1Take1_8_12_16 ->
+      -- Take 0th, 7th 11th and 15th element from sored list of athletes, sorted on round duration
+      do
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
+        [sortedAthletes !! 0, sortedAthletes !! 7, sortedAthletes !! 11, sortedAthletes !! 15]
+    WH2Take4_5_9_13 ->
+      -- Take 3rd, 4th 8th and 12th element from sored list of athletes, sorted on round duration
+      do
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
+        [sortedAthletes !! 3, sortedAthletes !! 4, sortedAthletes !! 8, sortedAthletes !! 12]
+    WH3Take3_6_10_14 ->
+      -- Take 2nd, 5th 9th and 13th element from sored list of athletes, sorted on round duration
+      do
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
+        [sortedAthletes !! 2, sortedAthletes !! 5, sortedAthletes !! 9, sortedAthletes !! 13]
+    WH4Take2_7_11_15 ->
+      -- Take 1st, 6th 10th and 14th element from sored list of athletes, sorted on round duration
+      do
+        let sortedAthletes = sortAthletesBasedOnSortCriteria sc r as
+        [sortedAthletes !! 1, sortedAthletes !! 6, sortedAthletes !! 10, sortedAthletes !! 14]
     _ -> sortAthletesBasedOnSortCriteria sc r as
 
 parseRoundSubRoundString :: String -> Maybe (String, Maybe String)
